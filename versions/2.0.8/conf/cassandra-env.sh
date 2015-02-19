@@ -171,10 +171,22 @@ JVM_OPTS="$JVM_OPTS -XX:ThreadPriorityPolicy=42"
 # stop-the-world GC pauses during resize, and so that we can lock the
 # heap in memory on startup to prevent any of it from being swapped
 # out.
-JVM_OPTS="$JVM_OPTS -Xms${MAX_HEAP_SIZE}"
-JVM_OPTS="$JVM_OPTS -Xmx${MAX_HEAP_SIZE}"
-JVM_OPTS="$JVM_OPTS -Xmn${HEAP_NEWSIZE}"
+
+if [ -x /opt/repo/versions/2.0.8/bin/variablesparser.sh ]; then
+    . /opt/repo/versions/2.0.8/bin/variablesparser.sh
+fi
+
+[ -z "$XMS" ] && { XMS=32M; }
+[ -z "$XMN" ] && { XMN=30M; }
+memory_total=`free -m | grep Mem | awk '{print $2}'`;
+[ -z "$XMX" ] && { let XMX=memory_total-35; XMX="${XMX}M"; }
+[ -z "$GC" ] && { GC="-XX:+UseParNewGC"; }
+
+JVM_OPTS="$JVM_OPTS -Xms${XMS}"
+JVM_OPTS="$JVM_OPTS -Xmx${XMX}"
+JVM_OPTS="$JVM_OPTS -Xmn${XMN}"
 JVM_OPTS="$JVM_OPTS -XX:+HeapDumpOnOutOfMemoryError"
+
 
 # set jvm HeapDumpPath with CASSANDRA_HEAPDUMP_DIR
 if [ "x$CASSANDRA_HEAPDUMP_DIR" != "x" ]; then
@@ -195,7 +207,7 @@ fi
 echo "xss = $JVM_OPTS"
 
 # GC tuning options
-JVM_OPTS="$JVM_OPTS -XX:+UseParNewGC" 
+JVM_OPTS="$JVM_OPTS ${GC}" 
 JVM_OPTS="$JVM_OPTS -XX:+UseConcMarkSweepGC" 
 JVM_OPTS="$JVM_OPTS -XX:+CMSParallelRemarkEnabled" 
 JVM_OPTS="$JVM_OPTS -XX:SurvivorRatio=8" 
@@ -230,7 +242,7 @@ fi
 # Prefer binding to IPv4 network intefaces (when net.ipv6.bindv6only=1). See 
 # http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6342561 (short version:
 # comment out this entry to enable IPv6 support).
-JVM_OPTS="$JVM_OPTS -Djava.net.preferIPv4Stack=true"
+JVM_OPTS="$JVM_OPTS -Djava.net.preferIPv4Stack=true ${confresult}"
 
 # jmx: metrics and administration interface
 # 

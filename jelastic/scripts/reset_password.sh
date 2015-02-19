@@ -11,7 +11,6 @@ GREP=$(which grep);
 #$J_OPENSHIFT_APP_ADM_PASSWORD    ;   Use this varible for your password
 
 function _setPassword() {
-        #return 0;
         new_passwd_file=$(mktemp);
         old_passwd_file=$(mktemp);
         cassanra_conf="/opt/repo/versions/2.0.8/conf/cassandra.yaml";
