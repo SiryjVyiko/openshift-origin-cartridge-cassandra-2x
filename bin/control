@@ -2,6 +2,8 @@
 
 source $OPENSHIFT_CARTRIDGE_SDK_BASH
 
+source /etc/jelastic/environment
+
 export STOPTIMEOUT=10
 
 function is_running {
