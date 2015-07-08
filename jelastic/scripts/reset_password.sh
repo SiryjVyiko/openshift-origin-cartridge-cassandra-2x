@@ -24,7 +24,7 @@ function _setPassword() {
 
         # Init data neede for password auth
         $SED -i 's/authenticator: AllowAllAuthenticator/authenticator: PasswordAuthenticator/g'     $cassanra_conf;
-        service cartridge restart > /dev/null 2>&1;
+        #service cartridge restart > /dev/null 2>&1;
 
         while netstat -lnt | awk '$4 ~ /:'"${OPENSHIFT_CASSANDRA_DB_PORT}"'$/ {exit 1}'; do sleep 1; done;
         sleep 10;
