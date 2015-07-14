@@ -7,7 +7,7 @@ source /etc/jelastic/environment
 export STOPTIMEOUT=10
 
 function is_running {
-  pidfile=$OPENSHIFT_CASSANDRA_DIR/cassandra/pid/cassandra.pid
+  pidfile=$OPENSHIFT_CASSANDRA_DIR/cassandra.pid
 
   if [ -f $pidfile ]; then
     cass_pid=`cat $pidfile 2> /dev/null`
@@ -26,14 +26,14 @@ function is_running {
 function start {
   [ -h /opt/repo/cassandra/log/log ] && rm -f /opt/repo/cassandra/log/log;
   if ! is_running; then
-    $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/bin/cassandra -p $OPENSHIFT_CASSANDRA_DIR/cassandra/pid/cassandra.pid
+    $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/bin/cassandra -p $OPENSHIFT_CASSANDRA_DIR/cassandra.pid
   else
     echo "Cassandra already running" 1>&2
   fi
 }
 
 function wait_for_cassandrad_availability {
-  pidfile=$OPENSHIFT_CASSANDRA_DIR/pid/cassandra.pid
+  pidfile=$OPENSHIFT_CASSANDRA_DIR/cassandra.pid
 
   if [ -n "$OPENSHIFT_CASSANDRA_DB_USERNAME" ]; then
     i=0
@@ -48,7 +48,7 @@ function wait_for_cassandrad_availability {
 
 function stop {
   if is_running; then
-    pidfile=$OPENSHIFT_CASSANDRA_DIR/cassandra/pid/cassandra.pid
+    pidfile=$OPENSHIFT_CASSANDRA_DIR/cassandra.pid
 
     if [ -f $pidfile ]; then
       pid=$( /bin/cat $pidfile )
