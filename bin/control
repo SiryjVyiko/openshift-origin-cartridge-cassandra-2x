@@ -20,13 +20,12 @@ function is_running {
 
   return 1
 }
-# TODO: account for standalone scenario
-# TODO: source user hooks?
-# Start and block until it comes up.
+
 function start {
   [ -h /opt/repo/cassandra/log/log ] && rm -f /opt/repo/cassandra/log/log;
   if ! is_running; then
-    $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/bin/cassandra -p $OPENSHIFT_CASSANDRA_DIR/cassandra.pid
+    echo "Starting Cassandra server...";
+    $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/bin/cassandra -p $OPENSHIFT_CASSANDRA_DIR/cassandra.pid > /dev/null 2>&1;
   else
     echo "Cassandra already running" 1>&2
   fi
@@ -48,8 +47,8 @@ function wait_for_cassandrad_availability {
 
 function stop {
   if is_running; then
-    pidfile=$OPENSHIFT_CASSANDRA_DIR/cassandra.pid
-
+    echo "Stopping Cassandra server...";
+    pidfile=$OPENSHIFT_CASSANDRA_DIR/cassandra.pid;
     if [ -f $pidfile ]; then
       pid=$( /bin/cat $pidfile )
       /bin/kill $pid
@@ -63,9 +62,12 @@ function stop {
           let TIMEOUT=${TIMEOUT}-1
         done
       fi
+	rm -f $pidfile;
     else
       echo "Cassandra already stopped" 1>&2
     fi
+    else
+      echo "Cassandra already stopped"
   fi
 }
 
