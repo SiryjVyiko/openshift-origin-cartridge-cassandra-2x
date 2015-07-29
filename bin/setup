@@ -14,7 +14,7 @@ JAVA_DIR=`ls $JAVA_COMMON_PATH | grep jdk1.7 | head -n 1`
 [ ! -z $JAVA_DIR ] && ln -s $JAVA_LATEST_DIR $JAVA_DEFAULT_DIR;
 
 mkdir -p $OPENSHIFT_CASSANDRA_DIR/cassandra/{log,pid,saved_caches,data,commitlog,pid}
-ln -s /opt/repo/cassandra/log/ /opt/repo/logs;
+ln -s $OPENSHIFT_CASSANDRA_DIR/cassandra/log/ $OPENSHIFT_CASSANDRA_DIR/logs;
 
 J_OPENSHIFT_CASSANDRA_DB_HOST=`ip a l|grep 'venet0'|grep 'inet'|grep -v '127.0.0.1'|awk '{print $2}'| sed 's/\/[0-9]*//g'`;
 
