@@ -16,7 +16,5 @@ JAVA_DIR=`ls $JAVA_COMMON_PATH | grep jdk1.7 | head -n 1`
 mkdir -p $OPENSHIFT_CASSANDRA_DIR/cassandra/{log,pid,saved_caches,data,commitlog,pid}
 ln -s $OPENSHIFT_CASSANDRA_DIR/cassandra/log/ $OPENSHIFT_CASSANDRA_DIR/logs;
 
-#J_OPENSHIFT_CASSANDRA_DB_HOST=`ip a l|grep 'venet0'|grep 'inet'|grep -v '127.0.0.1'|awk '{print $2}'| sed 's/\/[0-9]*//g'`;
-
 erb $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/conf/log4j-server.properties.erb > $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/conf/log4j-server.properties
 erb $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/conf/cassandra.yaml.erb > $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/conf/cassandra.yaml
