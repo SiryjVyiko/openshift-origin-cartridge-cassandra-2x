@@ -5,8 +5,6 @@ JAVA_LATEST_DIR="/usr/java/latest"
 JAVA_DEFAULT_DIR="/usr/java/default"
 JAVA_DIR=`ls $JAVA_COMMON_PATH | grep jdk1.7 | head -n 1`
 
-
-
 [ -L $JAVA_LATEST_DIR ] && rm $JAVA_LATEST_DIR;
 [ ! -z $JAVA_DIR ] && ln -s $JAVA_DIR $JAVA_LATEST_DIR;
 
