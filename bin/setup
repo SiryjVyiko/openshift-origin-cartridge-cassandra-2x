@@ -12,7 +12,7 @@ JAVA_DIR=`ls $JAVA_COMMON_PATH | grep jdk1.7 | head -n 1`
 [ ! -z $JAVA_DIR ] && ln -s $JAVA_LATEST_DIR $JAVA_DEFAULT_DIR;
 
 mkdir -p $OPENSHIFT_CASSANDRA_DIR/cassandra/{log,pid,saved_caches,data,commitlog,pid}
-ln -s $OPENSHIFT_CASSANDRA_DIR/cassandra/log/ $OPENSHIFT_CASSANDRA_DIR/logs;
+[ ! -e $OPENSHIFT_CASSANDRA_DIR/logs ] && ln -s $OPENSHIFT_CASSANDRA_DIR/cassandra/log/ $OPENSHIFT_CASSANDRA_DIR/logs;
 
 erb $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/conf/log4j-server.properties.erb > $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/conf/log4j-server.properties
 erb $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/conf/cassandra.yaml.erb > $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/conf/cassandra.yaml
