@@ -6,6 +6,7 @@ GREP=$(which grep);
 . /etc/jelastic/environment
 
 function _setPassword() {
+        return 0;
         new_passwd_file=$(mktemp);
         old_passwd_file=$(mktemp);
         cassanra_conf="/opt/repo/versions/${Version}/conf/cassandra.yaml";
