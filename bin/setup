@@ -14,6 +14,6 @@ JAVA_DIR=`ls $JAVA_COMMON_PATH | grep jdk1.8 | head -n 1`
 [ ! -z $JAVA_DIR ] && ln -s $JAVA_LATEST_DIR $JAVA_DEFAULT_DIR;
 
 mkdir -p $OPENSHIFT_CASSANDRA_DIR/cassandra/{pid,saved_caches,data,commitlog}
-mkdir -p $OPENSHIFT_CASSANDRA_DIR/cassandra/{pid,saved_caches,data,commitlog}
-erb $OPENSHIFT_CASSANDRA_DIR/versions/${Version}/conf/log4j-server.properties.erb > $OPENSHIFT_CASSANDRA_DIR/versions/${Version}/conf/log4j-server.properties
-erb $OPENSHIFT_CASSANDRA_DIR/versions/${Version}/conf/cassandra.yaml.erb > $OPENSHIFT_CASSANDRA_DIR/versions/${Version}/conf/cassandra.yaml
+#mkdir -p $OPENSHIFT_CASSANDRA_DIR/cassandra/{pid,saved_caches,data,commitlog}
+#erb $OPENSHIFT_CASSANDRA_DIR/versions/${Version}/conf/log4j-server.properties.erb > $OPENSHIFT_CASSANDRA_DIR/versions/${Version}/conf/log4j-server.properties
+#erb $OPENSHIFT_CASSANDRA_DIR/versions/${Version}/conf/cassandra.yaml.erb > $OPENSHIFT_CASSANDRA_DIR/versions/${Version}/conf/cassandra.yaml
