@@ -22,10 +22,15 @@ function is_running {
 }
 
 function start {
-  [ -h /opt/repo/cassandra/log/log ] && rm -f /opt/repo/cassandra/log/log;
   if ! is_running; then
-    echo "Starting Cassandra server...";
-    $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/bin/cassandra -p $OPENSHIFT_CASSANDRA_DIR/cassandra.pid > /dev/null 2>&1;
+    	echo "Starting Cassandra server...";
+    	$OPENSHIFT_CASSANDRA_DIR/versions/${Version}/bin/cassandra -p $OPENSHIFT_CASSANDRA_DIR/cassandra.pid > /dev/null 2>&1;
+  	retries=90
+        while [ $retries -gt 0 ]; do
+                [ -n "$(netstat -nlpt 2>/dev/null | grep $OPENSHIFT_CASSANDRA_DB_PORT)" ] && break
+                sleep 1
+        let retries=${retries}-1
+        done
   else
     echo "Cassandra already running" 1>&2
   fi

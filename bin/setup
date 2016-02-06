@@ -1,9 +1,11 @@
 #!/bin/bash -e
 
+. /etc/jelastic/environment
+
 JAVA_COMMON_PATH="/usr/java"
 JAVA_LATEST_DIR="/usr/java/latest"
 JAVA_DEFAULT_DIR="/usr/java/default"
-JAVA_DIR=`ls $JAVA_COMMON_PATH | grep jdk1.7 | head -n 1`
+JAVA_DIR=`ls $JAVA_COMMON_PATH | grep jdk1.8 | head -n 1`
 
 [ -L $JAVA_LATEST_DIR ] && rm $JAVA_LATEST_DIR;
 [ ! -z $JAVA_DIR ] && ln -s $JAVA_DIR $JAVA_LATEST_DIR;
@@ -11,8 +13,5 @@ JAVA_DIR=`ls $JAVA_COMMON_PATH | grep jdk1.7 | head -n 1`
 [ -L $JAVA_DEFAULT_DIR ] && rm $JAVA_DEFAULT_DIR;
 [ ! -z $JAVA_DIR ] && ln -s $JAVA_LATEST_DIR $JAVA_DEFAULT_DIR;
 
-mkdir -p $OPENSHIFT_CASSANDRA_DIR/cassandra/{log,pid,saved_caches,data,commitlog,pid}
-[ ! -e $OPENSHIFT_CASSANDRA_DIR/logs ] && ln -s $OPENSHIFT_CASSANDRA_DIR/cassandra/log/ $OPENSHIFT_CASSANDRA_DIR/logs;
-
-erb $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/conf/log4j-server.properties.erb > $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/conf/log4j-server.properties
-erb $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/conf/cassandra.yaml.erb > $OPENSHIFT_CASSANDRA_DIR/versions/2.0.8/conf/cassandra.yaml
+mkdir -p $OPENSHIFT_CASSANDRA_DIR/cassandra/{pid,saved_caches,data,commitlog}
+sed -i "s/localhost/$J_OPENSHIFT_CASSANDRA_DB_HOST/" /opt/repo/versions/${Version}/conf/cassandra.yaml

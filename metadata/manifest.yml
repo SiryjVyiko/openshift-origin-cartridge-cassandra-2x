@@ -1,10 +1,9 @@
 Name: cassandra
 Cartridge-Short-Name: CASSANDRA
 Architecture: noarch
-
-Display-Name: Cassandra Database 2.0.8
+Display-Name: Cassandra Database 2.2.4
 Description: "Cassandra is a multi-user, multi-threaded NoSQL database server."
-Version: '2.0.8'
+Version: '2.2.4'
 Versions: [2.0.8]
 Cartridge-Version: 0.0.2
 Cartridge-Vendor: rc
@@ -48,6 +47,14 @@ Scaling:
 Endpoints:
   - Private-IP-Name:   DB_HOST
     Private-Port-Name: DB_PORT
-    Private-Port:      9160
+    Private-Port:      9042
     Public-Port-Name:  DB_PROXY_PORT
+  - Private-IP-Name:   DB_TRANSPORT_HOST
+    Private-Port-Name: DB_TRANSPORT_PORT
+    Private-Port:      9160
+    Public-Port-Name:  DB_TRANSPORT_PROXY_PORT
+  - Private-IP-Name:   DB_STORAGE_HOST
+    Private-Port-Name: DB_STORAGE_PORT
+    Private-Port:      7000
+    Public-Port-Name:  DB_STORAGE_PROXY_PORT
 Install-Build-Required: false
