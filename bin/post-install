@@ -4,6 +4,6 @@
 
 dbname=$OPENSHIFT_APP_NAME
 
-sed -i "s/^listen_address:.*/listen_address: $J_OPENSHIFT_CASSANDRA_DB_HOST/" /opt/repo/versions/${Version}/conf/cassandra.yaml
+#sed -i "s/^listen_address:.*/listen_address: $J_OPENSHIFT_CASSANDRA_DB_HOST/" /opt/repo/versions/${Version}/conf/cassandra.yaml
 sed -i "s/^rpc_address:.*/rpc_address: $J_OPENSHIFT_CASSANDRA_DB_HOST/" /opt/repo/versions/${Version}/conf/cassandra.yaml
 sed -i "s/^broadcast_rpc_address:.*/broadcast_rpc_address:/" /opt/repo/versions/${Version}/conf/cassandra.yaml
