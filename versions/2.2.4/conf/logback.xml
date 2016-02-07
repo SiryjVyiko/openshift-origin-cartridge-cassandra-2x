@@ -49,9 +49,9 @@ appender reference in the root level section below.
   <!-- DEBUGLOG rolling file appender to debug.log (all levels) -->
 
   <appender name="DEBUGLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>${cassandra.logdir}/debug.log</file>
+    <file>/opt/repo/logs/debug.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-      <fileNamePattern>${cassandra.logdir}/debug.log.%i.zip</fileNamePattern>
+      <fileNamePattern>/opt/repo/logs/debug.log.%i.zip</fileNamePattern>
       <minIndex>1</minIndex>
       <maxIndex>20</maxIndex>
     </rollingPolicy>
