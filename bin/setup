@@ -17,3 +17,4 @@ mkdir -p $OPENSHIFT_CASSANDRA_DIR/cassandra/{pid,saved_caches,data,commitlog}
 #sed -i "s/localhost/$J_OPENSHIFT_CASSANDRA_DB_HOST/" /opt/repo/versions/${Version}/conf/cassandra.yaml
 
 sed -i "s/^rpc_address:.*/rpc_address: $J_OPENSHIFT_CASSANDRA_DB_HOST/" /opt/repo/versions/${Version}/conf/cassandra.yaml
+sed -i "s/^broadcast_rpc_address:.*/broadcast_rpc_address:/" /opt/repo/versions/${Version}/conf/cassandra.yaml
