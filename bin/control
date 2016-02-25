@@ -22,6 +22,9 @@ function is_running {
 }
 
 function start {
+  sed -i "s/^listen_address:.*/listen_address: $J_OPENSHIFT_CASSANDRA_DB_HOST/" /opt/repo/versions/${Version}/conf/cassandra.yaml
+  sed -i "s/^broadcast_rpc_address:.*/broadcast_rpc_address: $J_OPENSHIFT_CASSANDRA_DB_HOST/" /opt/repo/versions/${Version}/conf/cassandra.yaml
+  sed -i "s/- seeds:.*/- seeds: \"$J_OPENSHIFT_CASSANDRA_DB_HOST\"/" /opt/repo/versions/${Version}/conf/cassandra.yaml
   if ! is_running; then
     	echo "Starting Cassandra server...";
     	$OPENSHIFT_CASSANDRA_DIR/versions/${Version}/bin/cassandra -p $OPENSHIFT_CASSANDRA_DIR/cassandra.pid > /dev/null 2>&1;
