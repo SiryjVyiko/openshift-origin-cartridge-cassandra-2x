@@ -1,5 +1,6 @@
 #!/bin/bash
-CONFFILE='/opt/repo/versions/2.0.8/conf/variables.conf'
+. /etc/jelastic/environment
+CONFFILE="/opt/repo/versions/${Version}/conf/variables.conf"
 JELASTIC_GC_AGENT="jelastic-gc-agent.jar"
 
 SED=`which sed`
@@ -25,7 +26,7 @@ then
             if `echo $i | $GREP -qiE '\-Xmn[[:digit:]]{1,}[mgkMGK]$'`; then XMN="${i:4}"; continue; fi
             if `echo $i | $GREP -qie '\-XX:+Use[[:alnum:]]\{1,\}GC$'`; then GC=$GC" $i"; continue; fi
 
-            confresult=$confresult" $i"
+            confresult=$(echo " $confresult" " $i" | sed -e 's/&/\\&/g' -e 's/;/\\;/g' -e "s/?/\\?/g" -e "s/*/\\*/g" -e "s/(/\\(/g" -e "s/)/\\)/g")
         done
 fi
 
@@ -34,11 +35,9 @@ if `echo $confresult | grep -q ${JELASTIC_GC_AGENT}`;
 then
     if ! `echo $confresult | grep -q 'UseAdaptiveSizePolicy'`;
     then
-        confresult=$confresult" -XX:-UseAdaptiveSizePolicy"
+	confresult=$confresult" -XX:-UseAdaptiveSizePolicy"
     fi
 fi
-
-
 
 [ "$DEBUG" -eq 1 ] && {
     echo "confresult=$confresult"
