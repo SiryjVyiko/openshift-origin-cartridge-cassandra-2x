@@ -18,7 +18,7 @@ calculate_heap_sizes()
 {
     case "`uname`" in
         Linux)
-            system_memory_in_mb=`free -m | awk '/Mem:/ {print $2}'`
+            system_memory_in_mb=`free -m | awk '/:/ {print $2;exit}'`
             system_cpu_cores=`egrep -c 'processor([[:space:]]+):.*' /proc/cpuinfo`
         ;;
         FreeBSD)
@@ -70,31 +70,31 @@ calculate_heap_sizes()
     else
         max_heap_size_in_mb="$quarter_system_memory_in_mb"
     fi
-    MAX_HEAP_SIZE="${max_heap_size_in_mb}M"
-
-    # Young gen: min(max_sensible_per_modern_cpu_core * num_cores, 1/4 * heap size)
-    max_sensible_yg_per_core_in_mb="100"
-    max_sensible_yg_in_mb=`expr $max_sensible_yg_per_core_in_mb "*" $system_cpu_cores`
-
-    desired_yg_in_mb=`expr $max_heap_size_in_mb / 4`
-
-    if [ "$desired_yg_in_mb" -gt "$max_sensible_yg_in_mb" ]
-    then
-        HEAP_NEWSIZE="${max_sensible_yg_in_mb}M"
-    else
-        HEAP_NEWSIZE="${desired_yg_in_mb}M"
-    fi
+    MAX_HEAP_SIZE=494m
+    MIN_HEAP_SIZE=494m
+    HEAP_NEWSIZE=400m
 }
 
 # Determine the sort of JVM we'll be running on.
 
 java_ver_output=`"${JAVA:-java}" -version 2>&1`
 
-jvmver=`echo "$java_ver_output" | awk -F'"' 'NR==1 {print $2}'`
+jvmver=`echo "$java_ver_output" | grep '[openjdk|java] version' | awk -F'"' 'NR==1 {print $2}'`
 JVM_VERSION=${jvmver%_*}
 JVM_PATCH_VERSION=${jvmver#*_}
 
-jvm=`echo "$java_ver_output" | awk 'NR==2 {print $1}'`
+if [ "$JVM_VERSION" \< "1.7" ] ; then
+    echo "Cassandra 2.0 and later require Java 7u25 or later."
+    exit 1;
+fi
+
+if [ "$JVM_VERSION" \< "1.8" ] && [ "$JVM_PATCH_VERSION" \< "25" ] ; then
+    echo "Cassandra 2.0 and later require Java 7u25 or later."
+    exit 1;
+fi
+
+
+jvm=`echo "$java_ver_output" | grep -A 1 'java version' | awk 'NR==2 {print $1}'`
 case "$jvm" in
     OpenJDK)
         JVM_VENDOR=OpenJDK
@@ -129,8 +129,11 @@ esac
 # times. If in doubt, and if you do not particularly want to tweak, go with
 # 100 MB per physical CPU core.
 
-MAX_HEAP_SIZE="256M"
-HEAP_NEWSIZE="80M"
+#MAX_HEAP_SIZE=700m
+#HEAP_NEWSIZE=40m
+
+# Set this to control the amount of arenas per-thread in glibc
+#export MALLOC_ARENA_MAX=4
 
 if [ "x$MAX_HEAP_SIZE" = "x" ] && [ "x$HEAP_NEWSIZE" = "x" ]; then
     calculate_heap_sizes
@@ -141,8 +144,15 @@ else
     fi
 fi
 
+if [ "x$MALLOC_ARENA_MAX" = "x" ]
+then
+    export MALLOC_ARENA_MAX=4
+fi
+
+
 # Specifies the default port over which Cassandra will be available for
 # JMX connections.
+# For security reasons, you should not expose this port to the internet.  Firewall it if needed.
 JMX_PORT="7199"
 
 
@@ -154,11 +164,10 @@ JMX_PORT="7199"
 JVM_OPTS="$JVM_OPTS -ea"
 
 # add the jamm javaagent
-if [ "$JVM_VENDOR" != "OpenJDK" -o "$JVM_VERSION" \> "1.6.0" ] \
-      || [ "$JVM_VERSION" = "1.6.0" -a "$JVM_PATCH_VERSION" -ge 23 ]
-then
-    JVM_OPTS="$JVM_OPTS -javaagent:$CASSANDRA_HOME/lib/jamm-0.2.5.jar"
-fi
+JVM_OPTS="$JVM_OPTS -javaagent:$CASSANDRA_HOME/lib/jamm-0.3.0.jar"
+
+# some JVMs will fill up their heap when accessed via JMX, see CASSANDRA-6541
+JVM_OPTS="$JVM_OPTS -XX:+CMSClassUnloadingEnabled"
 
 # enable thread priorities, primarily so we can give periodic tasks
 # a lower priority to avoid interfering with client workload
@@ -171,22 +180,10 @@ JVM_OPTS="$JVM_OPTS -XX:ThreadPriorityPolicy=42"
 # stop-the-world GC pauses during resize, and so that we can lock the
 # heap in memory on startup to prevent any of it from being swapped
 # out.
-
-if [ -x /opt/repo/versions/2.0.8/bin/variablesparser.sh ]; then
-    . /opt/repo/versions/2.0.8/bin/variablesparser.sh
-fi
-
-[ -z "$XMS" ] && { XMS=32M; }
-[ -z "$XMN" ] && { XMN=30M; }
-memory_total=`free -m | grep Mem | awk '{print $2}'`;
-[ -z "$XMX" ] && { let XMX=memory_total-35; XMX="${XMX}M"; }
-[ -z "$GC" ] && { GC="-XX:+UseParNewGC"; }
-
-JVM_OPTS="$JVM_OPTS -Xms${XMS}"
-JVM_OPTS="$JVM_OPTS -Xmx${XMX}"
-JVM_OPTS="$JVM_OPTS -Xmn${XMN}"
+JVM_OPTS="$JVM_OPTS -Xms${MIN_HEAP_SIZE}"
+JVM_OPTS="$JVM_OPTS -Xmx${MAX_HEAP_SIZE}"
+JVM_OPTS="$JVM_OPTS -Xmn${HEAP_NEWSIZE}"
 JVM_OPTS="$JVM_OPTS -XX:+HeapDumpOnOutOfMemoryError"
-
 
 # set jvm HeapDumpPath with CASSANDRA_HEAPDUMP_DIR
 if [ "x$CASSANDRA_HEAPDUMP_DIR" != "x" ]; then
@@ -196,18 +193,14 @@ fi
 
 startswith() { [ "${1#$2}" != "$1" ]; }
 
-if [ "`uname`" = "Linux" ] ; then
-    # reduce the per-thread stack size to minimize the impact of Thrift
-    # thread-per-client.  (Best practice is for client connections to
-    # be pooled anyway.) Only do so on Linux where it is known to be
-    # supported.
-    # u34 and greater need 180k
-    JVM_OPTS="$JVM_OPTS -Xss360k"
-fi
-echo "xss = $JVM_OPTS"
+# Per-thread stack size.
+JVM_OPTS="$JVM_OPTS -Xss256k"
+
+# Larger interned string table, for gossip's benefit (CASSANDRA-6410)
+JVM_OPTS="$JVM_OPTS -XX:StringTableSize=1000003"
 
 # GC tuning options
-JVM_OPTS="$JVM_OPTS ${GC}" 
+JVM_OPTS="$JVM_OPTS -XX:+UseParNewGC" 
 JVM_OPTS="$JVM_OPTS -XX:+UseConcMarkSweepGC" 
 JVM_OPTS="$JVM_OPTS -XX:+CMSParallelRemarkEnabled" 
 JVM_OPTS="$JVM_OPTS -XX:SurvivorRatio=8" 
@@ -215,8 +208,16 @@ JVM_OPTS="$JVM_OPTS -XX:MaxTenuringThreshold=1"
 JVM_OPTS="$JVM_OPTS -XX:CMSInitiatingOccupancyFraction=75"
 JVM_OPTS="$JVM_OPTS -XX:+UseCMSInitiatingOccupancyOnly"
 JVM_OPTS="$JVM_OPTS -XX:+UseTLAB"
+JVM_OPTS="$JVM_OPTS -XX:+PerfDisableSharedMem"
+JVM_OPTS="$JVM_OPTS -XX:CompileCommandFile=$CASSANDRA_CONF/hotspot_compiler"
+JVM_OPTS="$JVM_OPTS -XX:CMSWaitDuration=10000"
+
 # note: bash evals '1.7.x' as > '1.7' so this is really a >= 1.7 jvm check
-if [ "$JVM_VERSION" \> "1.7" ] ; then
+if { [ "$JVM_VERSION" \> "1.7" ] && [ "$JVM_VERSION" \< "1.8.0" ] && [ "$JVM_PATCH_VERSION" -ge "60" ]; } || [ "$JVM_VERSION" \> "1.8" ] ; then
+    JVM_OPTS="$JVM_OPTS -XX:+CMSParallelInitialMarkEnabled -XX:+CMSEdenChunksRecordAlways -XX:CMSWaitDuration=10000"
+fi
+
+if [ "$JVM_ARCH" = "64-Bit" ] ; then
     JVM_OPTS="$JVM_OPTS -XX:+UseCondCardMark"
 fi
 
@@ -237,23 +238,66 @@ fi
 # JVM_OPTS="$JVM_OPTS -XX:GCLogFileSize=10M"
 
 # uncomment to have Cassandra JVM listen for remote debuggers/profilers on port 1414
-# JVM_OPTS="$JVM_OPTS -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=1414"
+# JVM_OPTS="$JVM_OPTS -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=1414"
 
-# Prefer binding to IPv4 network intefaces (when net.ipv6.bindv6only=1). See 
+# uncomment to have Cassandra JVM log internal method compilation (developers only)
+# JVM_OPTS="$JVM_OPTS -XX:+UnlockDiagnosticVMOptions -XX:+LogCompilation"
+# JVM_OPTS="$JVM_OPTS -XX:+UnlockCommercialFeatures -XX:+FlightRecorder"
+
+# Prefer binding to IPv4 network intefaces (when net.ipv6.bindv6only=1). See
 # http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6342561 (short version:
 # comment out this entry to enable IPv6 support).
-JVM_OPTS="$JVM_OPTS -Djava.net.preferIPv4Stack=true ${confresult}"
+JVM_OPTS="$JVM_OPTS -Djava.net.preferIPv4Stack=true"
 
 # jmx: metrics and administration interface
-# 
+#
 # add this if you're having trouble connecting:
 # JVM_OPTS="$JVM_OPTS -Djava.rmi.server.hostname=<public name>"
-# 
-# see 
+#
+# see
 # https://blogs.oracle.com/jmxetc/entry/troubleshooting_connection_problems_in_jconsole
 # for more on configuring JMX through firewalls, etc. (Short version:
 # get it working with no firewall first.)
-#JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.port=$JMX_PORT" 
-#JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.ssl=false" 
-#JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.authenticate=false" 
-#JVM_OPTS="$JVM_OPTS $JVM_EXTRA_OPTS"
+#
+# Cassandra ships with JMX accessible *only* from localhost.  
+# To enable remote JMX connections, uncomment lines below
+# with authentication and/or ssl enabled. See https://wiki.apache.org/cassandra/JmxSecurity 
+#
+if [ "x$LOCAL_JMX" = "x" ]; then
+    LOCAL_JMX=yes
+fi
+
+if [ "$LOCAL_JMX" = "yes" ]; then
+  JVM_OPTS="$JVM_OPTS -Dcassandra.jmx.local.port=$JMX_PORT -XX:+DisableExplicitGC"
+else
+  JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.port=$JMX_PORT"
+  JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.rmi.port=$JMX_PORT"
+  JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.ssl=false"
+  JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.authenticate=true"
+  JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.password.file=/etc/cassandra/jmxremote.password"
+#  JVM_OPTS="$JVM_OPTS -Djavax.net.ssl.keyStore=/path/to/keystore"
+#  JVM_OPTS="$JVM_OPTS -Djavax.net.ssl.keyStorePassword=<keystore-password>"
+#  JVM_OPTS="$JVM_OPTS -Djavax.net.ssl.trustStore=/path/to/truststore"
+#  JVM_OPTS="$JVM_OPTS -Djavax.net.ssl.trustStorePassword=<truststore-password>"
+#  JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.ssl.need.client.auth=true"
+#  JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.registry.ssl=true"
+#  JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.ssl.enabled.protocols=<enabled-protocols>"
+#  JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.ssl.enabled.cipher.suites=<enabled-cipher-suites>"
+fi
+
+# To use mx4j, an HTML interface for JMX, add mx4j-tools.jar to the lib/
+# directory.
+# See http://wiki.apache.org/cassandra/Operations#Monitoring_with_MX4J
+# By default mx4j listens on 0.0.0.0:8081. Uncomment the following lines
+# to control its listen address and port.
+#MX4J_ADDRESS="-Dmx4jaddress=127.0.0.1"
+#MX4J_PORT="-Dmx4jport=8081"
+
+# Cassandra uses SIGAR to capture OS metrics CASSANDRA-7838
+# for SIGAR we have to set the java.library.path
+# to the location of the native libraries.
+JVM_OPTS="$JVM_OPTS -Djava.library.path=$CASSANDRA_HOME/lib/sigar-bin"
+
+JVM_OPTS="$JVM_OPTS $MX4J_ADDRESS"
+JVM_OPTS="$JVM_OPTS $MX4J_PORT"
+JVM_OPTS="$JVM_OPTS $JVM_EXTRA_OPTS"
