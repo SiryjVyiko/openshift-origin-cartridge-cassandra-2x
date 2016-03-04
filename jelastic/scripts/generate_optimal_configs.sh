@@ -13,5 +13,7 @@ CASSANDRA_ENV_FILE="${OPENSHIFT_CASSANDRA_DIR}/versions/${Version}/conf/cassandr
 memory_total=`free -m | grep Mem | awk '{print $2}'`;
 [ -z "$XMX" ] && { let "XMX=(memory_total-35)/2"; XMX="${XMX}M";  }
 [ -z "$XMS" ] && { XMS=${XMX}; }
+[ -z "$XMN" ] && { XMN="128M"; }
 $SED -i "s/MAX_HEAP_SIZE=.*/MAX_HEAP_SIZE=${XMX}/" $CASSANDRA_ENV_FILE;
-$SED -i "s/MIN_HEAP_SIZE=.*/MIN_HEAP_SIZE=${XMS}/" $CASSANDRA_ENV_FILE
+$SED -i "s/MIN_HEAP_SIZE=.*/MIN_HEAP_SIZE=${XMS}/" $CASSANDRA_ENV_FILE;
+$SED -i "s/HEAP_NEWSIZE=.*/HEAP_NEWSIZE=${XMN}/" $CASSANDRA_ENV_FILE;
