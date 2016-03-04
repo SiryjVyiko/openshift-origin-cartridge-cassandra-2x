@@ -72,7 +72,17 @@ calculate_heap_sizes()
     fi
     MAX_HEAP_SIZE=494m
     MIN_HEAP_SIZE=494m
-    HEAP_NEWSIZE=400m
+    max_sensible_yg_per_core_in_mb="100"		
+    max_sensible_yg_in_mb=`expr $max_sensible_yg_per_core_in_mb "*" $system_cpu_cores`		
+ 		
+    desired_yg_in_mb=`expr $max_heap_size_in_mb / 4`		
+ 		
+    if [ "$desired_yg_in_mb" -gt "$max_sensible_yg_in_mb" ]		
+    then		
+        HEAP_NEWSIZE="${max_sensible_yg_in_mb}M"		
+    else		
+        HEAP_NEWSIZE="${desired_yg_in_mb}M"		
+    fi
 }
 
 # Determine the sort of JVM we'll be running on.
@@ -182,7 +192,6 @@ JVM_OPTS="$JVM_OPTS -XX:ThreadPriorityPolicy=42"
 # out.
 JVM_OPTS="$JVM_OPTS -Xms${MIN_HEAP_SIZE}"
 JVM_OPTS="$JVM_OPTS -Xmx${MAX_HEAP_SIZE}"
-JVM_OPTS="$JVM_OPTS -Xmn${HEAP_NEWSIZE}"
 JVM_OPTS="$JVM_OPTS -XX:+HeapDumpOnOutOfMemoryError"
 
 # set jvm HeapDumpPath with CASSANDRA_HEAPDUMP_DIR
